@@ -74,6 +74,7 @@ func NewAutheliaFileHandler(opts ...handler.Option) handler.Handler {
 		log:                options.Logger,
 		ldohelper:          options.LDAPHelper,
 		options:            &options,
+		lock:               &sync.Mutex{},
 	}
 	b.loadFile()
 	b.watcher, err = fsnotify.NewWatcher()
