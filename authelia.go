@@ -75,7 +75,7 @@ func NewAutheliaFileHandler(opts ...handler.Option) handler.Handler {
 		ldohelper:          options.LDAPHelper,
 		options:            &options,
 	}
-
+	b.loadFile()
 	b.watcher, err = fsnotify.NewWatcher()
 	if err != nil {
 		b.log.Error().Err(err).Msg("Failed to create file watcher")
@@ -196,10 +196,12 @@ func (a *AutheliaFileBackend) GetYubikeyAuth() *yubigo.YubiAuth {
 }
 
 func (a *AutheliaFileBackend) FindPosixAccounts(hierarchy string) (entrylist []*ldap.Entry, err error) {
+	a.log.Error().Msg("Unimplemented function FindPosixAccounts called")
 	return nil, errors.New("not implemented")
 }
 
 func (a *AutheliaFileBackend) FindPosixGroups(hierarchy string) (entrylist []*ldap.Entry, err error) {
+	a.log.Error().Msg("Unimplemented function FindPosixGroups called")
 	return nil, errors.New("not implemented")
 }
 
