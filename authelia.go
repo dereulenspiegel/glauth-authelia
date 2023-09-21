@@ -80,8 +80,8 @@ func NewAutheliaFileHandler(opts ...handler.Option) handler.Handler {
 	if err != nil {
 		b.log.Error().Err(err).Msg("Failed to create file watcher")
 	}
-	if err := b.watcher.Add(options.Backend.Datastore); err != nil {
-		b.log.Error().Err(err).Str("path", options.Backend.Datastore).Msg("Failed to watch file")
+	if err := b.watcher.Add(b.autheliaUserDbPath); err != nil {
+		b.log.Error().Err(err).Str("path", b.autheliaUserDbPath).Msg("Failed to watch file")
 	}
 	b.watch()
 
