@@ -68,7 +68,7 @@ func NewAutheliaFileHandler(opts ...handler.Option) handler.Handler {
 	options := handler.NewOptions(opts...)
 	ctx, cancelFn := context.WithCancel(context.Background())
 	b := &AutheliaFileBackend{
-		autheliaUserDbPath: options.Backend.Datastore,
+		autheliaUserDbPath: options.Backend.Database,
 		backgroundCtx:      ctx,
 		cancelFn:           cancelFn,
 		log:                options.Logger,
