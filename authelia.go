@@ -100,6 +100,7 @@ func (a *AutheliaFileBackend) watch() {
 					return
 				}
 				if event.Op == fsnotify.Write {
+					a.log.Info().Msg("Got update event for authelia user db")
 					a.loadFile()
 				}
 			case err, ok := <-a.watcher.Errors:
@@ -131,14 +132,17 @@ func (a *AutheliaFileBackend) loadFile() {
 }
 
 func (a *AutheliaFileBackend) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldap.LDAPResultCode, error) {
+	a.log.Debug().Str("bindDN", bindDN).Msg("Binding user")
 	return a.ldohelper.Bind(a, bindDN, bindSimplePw, conn)
 }
 
 func (a *AutheliaFileBackend) Search(bindDN string, searchReq ldap.SearchRequest, conn net.Conn) (ldap.ServerSearchResult, error) {
+	a.log.Debug().Str("bindDN", bindDN).Msg("Searchin user")
 	return a.ldohelper.Search(a, bindDN, searchReq, conn)
 }
 
 func (a *AutheliaFileBackend) Close(boundDN string, conn net.Conn) error {
+	a.log.Info().Msg("Shutting down authelia plugin")
 	a.cancelFn()
 	return a.watcher.Close()
 }
@@ -158,8 +162,10 @@ func (a *AutheliaFileBackend) Delete(boundDN, deleteDN string, conn net.Conn) (l
 func (a *AutheliaFileBackend) FindUser(userName string, searchByUPN bool) (bool, config.User, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
+	a.log.Debug().Str("username", userName).Msg("Trying to find user")
 	autheliaUser, exists := a.userDb.Users[userName]
 	if !exists {
+		a.log.Debug().Str("username", userName).Msg("User does not exist")
 		return false, config.User{}, errors.New("user not found")
 	}
 	return true, autheliaUser.ToLdapUser(a), nil
@@ -168,6 +174,7 @@ func (a *AutheliaFileBackend) FindUser(userName string, searchByUPN bool) (bool,
 func (a *AutheliaFileBackend) FindGroup(groupName string) (bool, config.Group, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
+	a.log.Debug().Str("groupname", groupName).Msg("Trying to find group")
 	group, exists := a.userDb.Groups[groupName]
 	return exists, *group, nil
 }
