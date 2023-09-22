@@ -134,11 +134,16 @@ func (a *AutheliaFileBackend) loadFile() {
 
 func (a *AutheliaFileBackend) Bind(bindDN, bindSimplePw string, conn net.Conn) (ldap.LDAPResultCode, error) {
 	a.log.Debug().Str("bindDN", bindDN).Msg("Binding user")
-	return a.ldohelper.Bind(a, bindDN, bindSimplePw, conn)
+	result, err := a.ldohelper.Bind(a, bindDN, bindSimplePw, conn)
+	if err != nil {
+		a.log.Error().Err(err).Str("bindDN", bindDN).Msg("Binding user failed")
+	}
+	a.log.Debug().Str("ldapResult", ldap.LDAPResultCodeMap[result]).Msg("Got result from bind helper")
+	return result, err
 }
 
 func (a *AutheliaFileBackend) Search(bindDN string, searchReq ldap.SearchRequest, conn net.Conn) (ldap.ServerSearchResult, error) {
-	a.log.Debug().Str("bindDN", bindDN).Msg("Searchin user")
+	a.log.Debug().Str("bindDN", bindDN).Msg("Searching user")
 	return a.ldohelper.Search(a, bindDN, searchReq, conn)
 }
 
@@ -234,6 +239,8 @@ func (a *AutheliaFileBackend) MatchPassword(user *config.User, pw string) error 
 
 func parseAutheliaUserDb(fileBytes []byte) (*AutheliaUserDb, error) {
 	var autheliaDb AutheliaUserDb
+	autheliaDb.Groups = make(map[string]*config.Group)
+	autheliaDb.Users = make(map[string]*User)
 	if err := yaml.Unmarshal(fileBytes, &autheliaDb); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal authelia user db yaml: %s", err)
 	}
