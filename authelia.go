@@ -12,6 +12,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/glauth/glauth/v2/pkg/config"
 	"github.com/glauth/glauth/v2/pkg/handler"
+	"github.com/glauth/glauth/v2/pkg/stats"
 	"github.com/go-crypt/crypt"
 	"github.com/go-crypt/crypt/algorithm/plaintext"
 	"github.com/nmcclain/ldap"
@@ -148,6 +149,11 @@ func (a *AutheliaFileBackend) Search(bindDN string, searchReq ldap.SearchRequest
 }
 
 func (a *AutheliaFileBackend) Close(boundDN string, conn net.Conn) error {
+	stats.Frontend.Add("closes", 1)
+	return nil
+}
+
+func (a *AutheliaFileBackend) CloseHandler() error {
 	a.log.Info().Msg("Shutting down authelia plugin")
 	a.cancelFn()
 	return a.watcher.Close()
