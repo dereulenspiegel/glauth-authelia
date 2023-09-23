@@ -46,16 +46,21 @@ type AutheliaUserDb struct {
 }
 
 type User struct {
-	Username     string
-	Displayname  string
-	Email        string
-	Password     string
-	Groups       []string
-	PrimaryGroup *config.Group
-	UnixID       int
+	Username         string
+	Displayname      string
+	Email            string
+	Password         string
+	Groups           []string
+	PrimaryGroup     *config.Group
+	UnixID           int
+	AdditionalGroups []*config.Group
 }
 
 func (u *User) ToLdapUser(a *AutheliaFileBackend) config.User {
+	var otherGroupIDs []int
+	for _, group := range u.AdditionalGroups {
+		otherGroupIDs = append(otherGroupIDs, group.GIDNumber)
+	}
 	return config.User{
 		Name:          u.Username,
 		Disabled:      false,
@@ -65,6 +70,7 @@ func (u *User) ToLdapUser(a *AutheliaFileBackend) config.User {
 		PrimaryGroup:  u.PrimaryGroup.GIDNumber,
 		PassAppCustom: a.MatchPassword,
 		UIDNumber:     u.UnixID,
+		OtherGroups:   otherGroupIDs,
 	}
 }
 
@@ -99,6 +105,8 @@ func parseAutheliaUserDb(fileBytes []byte) (*AutheliaUserDb, error) {
 				// Simply use the first found group as the users primary group
 				user.PrimaryGroup = group
 				firstGroup = false
+			} else {
+				user.AdditionalGroups = append(user.AdditionalGroups, group)
 			}
 		}
 	}
