@@ -25,23 +25,40 @@ const (
 func NewAutheliaFileHandler(opts ...handler.Option) handler.Handler {
 	var err error
 	options := handler.NewOptions(opts...)
+	log := options.Logger
 	ctx, cancelFn := context.WithCancel(context.Background())
+	cdecoder, err := crypt.NewDefaultDecoder()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to initialise password decode")
+		cancelFn()
+		return nil
+	}
+	if err := plaintext.RegisterDecoderPlainText(cdecoder); err != nil {
+		log.Error().Err(err).Msg("failed to register plaintext password decoder")
+		cancelFn()
+		return nil
+	}
 	b := &AutheliaFileBackend{
 		autheliaUserDbPath: options.Backend.Database,
 		backgroundCtx:      ctx,
 		cancelFn:           cancelFn,
-		log:                options.Logger,
+		log:                log,
 		ldohelper:          options.LDAPHelper,
 		options:            &options,
 		lock:               &sync.Mutex{},
+		cdecoder:           cdecoder,
 	}
 	b.loadFile()
 	b.watcher, err = fsnotify.NewWatcher()
 	if err != nil {
 		b.log.Error().Err(err).Msg("Failed to create file watcher")
+		cancelFn()
+		return nil
 	}
 	if err := b.watcher.Add(b.autheliaUserDbPath); err != nil {
 		b.log.Error().Err(err).Str("path", b.autheliaUserDbPath).Msg("Failed to watch file")
+		cancelFn()
+		return nil
 	}
 	b.watch()
 
@@ -118,14 +135,17 @@ func (a *AutheliaFileBackend) CloseHandler() error {
 }
 
 func (a *AutheliaFileBackend) Add(boundDN string, req ldap.AddRequest, conn net.Conn) (ldap.LDAPResultCode, error) {
+	a.log.Debug().Str("function", "Add").Msg("Uninplemented function called")
 	return ldap.LDAPResultInsufficientAccessRights, nil
 }
 
 func (a *AutheliaFileBackend) Modify(boundDN string, req ldap.ModifyRequest, conn net.Conn) (ldap.LDAPResultCode, error) {
+	a.log.Debug().Str("function", "Modify").Msg("Uninplemented function called")
 	return ldap.LDAPResultInsufficientAccessRights, nil
 }
 
 func (a *AutheliaFileBackend) Delete(boundDN, deleteDN string, conn net.Conn) (ldap.LDAPResultCode, error) {
+	a.log.Debug().Str("function", "Delete").Msg("Uninplemented function called")
 	return ldap.LDAPResultInsufficientAccessRights, nil
 }
 
@@ -136,7 +156,7 @@ func (a *AutheliaFileBackend) FindUser(userName string, searchByUPN bool) (bool,
 	autheliaUser, exists := a.userDb.Users[userName]
 	if !exists {
 		a.log.Debug().Str("username", userName).Msg("User does not exist")
-		return false, config.User{}, errors.New("user not found")
+		return false, config.User{}, errorUserDoesNotExist
 	}
 	return true, autheliaUser.ToLdapUser(a), nil
 }
@@ -146,6 +166,9 @@ func (a *AutheliaFileBackend) FindGroup(groupName string) (bool, config.Group, e
 	defer a.lock.Unlock()
 	a.log.Debug().Str("groupname", groupName).Msg("Trying to find group")
 	group, exists := a.userDb.Groups[groupName]
+	if !exists {
+		return false, config.Group{}, errorGroupDoesNotExist
+	}
 	return exists, *group, nil
 }
 
@@ -166,37 +189,11 @@ func (a *AutheliaFileBackend) GetYubikeyAuth() *yubigo.YubiAuth {
 }
 
 func (a *AutheliaFileBackend) FindPosixAccounts(hierarchy string) (entrylist []*ldap.Entry, err error) {
-	a.log.Error().Msg("Unimplemented function FindPosixAccounts called")
+	a.log.Debug().Str("function", "FindPosixAccounts").Msg("Uninplemented function called")
 	return nil, errors.New("not implemented")
 }
 
 func (a *AutheliaFileBackend) FindPosixGroups(hierarchy string) (entrylist []*ldap.Entry, err error) {
-	a.log.Error().Msg("Unimplemented function FindPosixGroups called")
-	return nil, errors.New("not implemented")
-}
-
-func (a *AutheliaFileBackend) MatchPassword(user *config.User, pw string) error {
-	autheliaUser, exists := a.userDb.Users[user.Name]
-	if !exists {
-		return errors.New("user does not exist")
-	}
-	cdecoder, err := crypt.NewDefaultDecoder()
-	if err != nil {
-		return err
-	}
-	if err := plaintext.RegisterDecoderPlainText(cdecoder); err != nil {
-		return nil
-	}
-	digest, err := cdecoder.Decode(autheliaUser.Password)
-	if err != nil {
-		return err
-	}
-	matching, err := digest.MatchAdvanced(pw)
-	if err != nil {
-		return err
-	}
-	if !matching {
-		return errors.New("invalid password")
-	}
-	return nil
+	a.log.Debug().Str("function", "FindPosixGroups").Msg("Uninplemented function called")
+	return nil, errorNotImplemented
 }

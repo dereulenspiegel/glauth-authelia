@@ -2,14 +2,23 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/glauth/glauth/v2/pkg/config"
 	"github.com/glauth/glauth/v2/pkg/handler"
+	"github.com/go-crypt/crypt"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
+)
+
+var (
+	errorUserDoesNotExist  = errors.New("user does not exist")
+	errorInvalidPassword   = errors.New("invalid password")
+	errorNotImplemented    = errors.New("not implemented")
+	errorGroupDoesNotExist = errors.New("group does not exist")
 )
 
 type AutheliaFileBackend struct {
@@ -23,6 +32,7 @@ type AutheliaFileBackend struct {
 	userDb        *AutheliaUserDb
 	ldohelper     handler.LDAPOpsHelper
 	options       *handler.Options
+	cdecoder      *crypt.Decoder
 }
 
 type AutheliaUserDb struct {
@@ -84,4 +94,24 @@ func parseAutheliaUserDb(fileBytes []byte) (*AutheliaUserDb, error) {
 		}
 	}
 	return &autheliaDb, nil
+}
+
+func (a *AutheliaFileBackend) MatchPassword(user *config.User, pw string) error {
+	autheliaUser, exists := a.userDb.Users[user.Name]
+	if !exists {
+		return errorUserDoesNotExist
+	}
+
+	digest, err := a.cdecoder.Decode(autheliaUser.Password)
+	if err != nil {
+		return fmt.Errorf("failed to decode password string: %w", err)
+	}
+	matching, err := digest.MatchAdvanced(pw)
+	if err != nil {
+		return fmt.Errorf("failed to match digest: %w", err)
+	}
+	if !matching {
+		return errorInvalidPassword
+	}
+	return nil
 }
