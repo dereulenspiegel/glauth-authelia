@@ -14,6 +14,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	groupIdBase = 10000
+	userIdBase  = 10000
+)
+
 var (
 	errorUserDoesNotExist  = errors.New("user does not exist")
 	errorInvalidPassword   = errors.New("invalid password")
@@ -47,6 +52,7 @@ type User struct {
 	Password     string
 	Groups       []string
 	PrimaryGroup *config.Group
+	UnixID       int
 }
 
 func (u *User) ToLdapUser(a *AutheliaFileBackend) config.User {
@@ -58,8 +64,7 @@ func (u *User) ToLdapUser(a *AutheliaFileBackend) config.User {
 		GivenName:     u.Displayname,
 		PrimaryGroup:  u.PrimaryGroup.GIDNumber,
 		PassAppCustom: a.MatchPassword,
-
-		// UIDNumber: 0, We try to ignore this for now
+		UIDNumber:     u.UnixID,
 	}
 }
 
@@ -72,8 +77,12 @@ func parseAutheliaUserDb(fileBytes []byte) (*AutheliaUserDb, error) {
 	}
 	autheliaDb.Groups = make(map[string]*config.Group)
 	groupIdCounter := groupIdBase
+	userIdCounter := userIdBase
 	for username, user := range autheliaDb.Users {
 		user.Username = username
+		user.UnixID = userIdCounter
+		userIdCounter = userIdCounter + 1
+
 		firstGroup := true
 		for _, groupName := range user.Groups {
 			var group *config.Group

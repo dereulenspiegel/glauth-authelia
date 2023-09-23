@@ -18,10 +18,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const (
-	groupIdBase = 10000
-)
-
 func NewAutheliaFileHandler(opts ...handler.Option) handler.Handler {
 	var err error
 	options := handler.NewOptions(opts...)
